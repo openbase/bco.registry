@@ -38,7 +38,7 @@ import org.slf4j.LoggerFactory;
 public class CachedUnitRegistryRemote {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(CachedUnitRegistryRemote.class);
-    private static UnitRegistryRemote unitRegistryRemote;
+    private static UnitRegistryRemote registryRemote;
     private static boolean shutdown = false;
 
     static {
@@ -54,8 +54,7 @@ public class CachedUnitRegistryRemote {
 
     public static void reinitialize() throws InterruptedException, CouldNotPerformException {
         try {
-            getRegistry();
-            unitRegistryRemote.requestData().get(10, TimeUnit.SECONDS);
+            getRegistry().requestData().get(10, TimeUnit.SECONDS);
         } catch (ExecutionException | TimeoutException | CouldNotPerformException ex) {
             throw new CouldNotPerformException("Could not reinitialize " + CachedUnitRegistryRemote.class.getSimpleName() + "!", ex);
         }
@@ -72,43 +71,56 @@ public class CachedUnitRegistryRemote {
                 throw new InvalidStateException("Remote service is shutting down!");
             }
 
-            if (unitRegistryRemote == null) {
+            if (registryRemote == null) {
                 try {
-                    unitRegistryRemote = new UnitRegistryRemote();
-                    unitRegistryRemote.init();
-                    unitRegistryRemote.activate();
+                    registryRemote = new UnitRegistryRemote();
+                    registryRemote.init();
+                    registryRemote.activate();
                 } catch (CouldNotPerformException ex) {
-                    if (unitRegistryRemote != null) {
-                        unitRegistryRemote.shutdown();
-                        unitRegistryRemote = null;
+                    if (registryRemote != null) {
+                        registryRemote.shutdown();
+                        registryRemote = null;
                     }
                     throw ExceptionPrinter.printHistoryAndReturnThrowable(new CouldNotPerformException("Could not start cached unit registry remote!", ex), LOGGER);
                 }
             }
-            return unitRegistryRemote;
+            return registryRemote;
         } catch (CouldNotPerformException ex) {
             throw new NotAvailableException("cached unit registry", ex);
         }
     }
 
     public static void waitForData() throws InterruptedException, CouldNotPerformException {
-        if (unitRegistryRemote == null) {
+        if (registryRemote == null) {
             getRegistry();
         }
-        unitRegistryRemote.waitForData();
+        registryRemote.waitForData();
     }
 
     public static void waitForData(long timeout, TimeUnit timeUnit) throws CouldNotPerformException, InterruptedException {
-        if (unitRegistryRemote == null) {
+        if (registryRemote == null) {
             getRegistry();
         }
-        unitRegistryRemote.waitForData(timeout, timeUnit);
+        registryRemote.waitForData(timeout, timeUnit);
     }
 
     public static void shutdown() {
-        if (unitRegistryRemote != null) {
-            unitRegistryRemote.shutdown();
-            unitRegistryRemote = null;
+        if (registryRemote != null) {
+            registryRemote.shutdown();
+            registryRemote = null;
         }
+    }
+
+    /**
+     * Method blocks until the registry is not handling any tasks and is currently consistent.
+     *
+     * @throws InterruptedException is thrown in case the thread was externally interrupted.
+     * @throws org.openbase.jul.exception.CouldNotPerformException is thrown if the wait could not be performed.
+     */
+    public static void waitUntilReady() throws InterruptedException, CouldNotPerformException {
+        if (registryRemote == null) {
+            getRegistry();
+        }
+        registryRemote.waitUntilReady();
     }
 }

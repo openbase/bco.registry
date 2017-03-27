@@ -21,7 +21,6 @@ package org.openbase.bco.registry.remote;
  * <http://www.gnu.org/licenses/gpl-3.0.html>.
  * #L%
  */
-
 import org.openbase.bco.registry.agent.remote.AgentRegistryRemote;
 import org.openbase.bco.registry.agent.remote.CachedAgentRegistryRemote;
 import org.openbase.bco.registry.app.remote.AppRegistryRemote;
@@ -153,5 +152,37 @@ public class Registries {
         CachedLocationRegistryRemote.waitForData();
         CachedSceneRegistryRemote.waitForData();
         CachedUserRegistryRemote.waitForData();
+    }
+
+    /**
+     * Method forces a resynchronization on all remote registries.
+     *
+     * @throws CouldNotPerformException
+     * @throws InterruptedException
+     */
+    public static void reinitialize() throws CouldNotPerformException, InterruptedException {
+        CachedUnitRegistryRemote.reinitialize();
+        CachedAgentRegistryRemote.reinitialize();
+        CachedAppRegistryRemote.reinitialize();
+        CachedDeviceRegistryRemote.reinitialize();
+        CachedLocationRegistryRemote.reinitialize();
+        CachedSceneRegistryRemote.reinitialize();
+        CachedUserRegistryRemote.reinitialize();
+    }
+
+    /**
+     * Method blocks until all registries are not handling any tasks and are all consistent.
+     *
+     * @throws InterruptedException is thrown in case the thread was externally interrupted.
+     * @throws org.openbase.jul.exception.CouldNotPerformException is thrown if the wait could not be performed.
+     */
+    public static void waitUntilReady() throws InterruptedException, CouldNotPerformException {
+        CachedUnitRegistryRemote.waitUntilReady();
+        CachedAgentRegistryRemote.waitUntilReady();
+        CachedAppRegistryRemote.waitUntilReady();
+        CachedDeviceRegistryRemote.waitUntilReady();
+        CachedLocationRegistryRemote.waitUntilReady();
+        CachedSceneRegistryRemote.waitUntilReady();
+        CachedUserRegistryRemote.waitUntilReady();
     }
 }

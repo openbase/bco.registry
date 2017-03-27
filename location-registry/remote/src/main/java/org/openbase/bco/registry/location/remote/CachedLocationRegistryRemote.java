@@ -24,7 +24,6 @@ package org.openbase.bco.registry.location.remote;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import org.openbase.bco.registry.location.lib.LocationRegistry;
 import org.openbase.jul.exception.CouldNotPerformException;
 import org.openbase.jul.exception.InvalidStateException;
 import org.openbase.jul.exception.NotAvailableException;
@@ -39,7 +38,7 @@ import org.slf4j.LoggerFactory;
 public class CachedLocationRegistryRemote {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(CachedLocationRegistryRemote.class);
-    private static LocationRegistryRemote locationRegistryRemote;
+    private static LocationRegistryRemote registryRemote;
     private static boolean shutdown = false;
 
     static {
@@ -56,7 +55,7 @@ public class CachedLocationRegistryRemote {
     public static void reinitialize() throws InterruptedException, CouldNotPerformException {
         try {
             getRegistry();
-            locationRegistryRemote.requestData().get(10, TimeUnit.SECONDS);
+            registryRemote.requestData().get(10, TimeUnit.SECONDS);
         } catch (ExecutionException | TimeoutException | CouldNotPerformException ex) {
             throw new CouldNotPerformException("Could not reinitialize " + CachedLocationRegistryRemote.class.getSimpleName() + "!", ex);
         }
@@ -73,43 +72,56 @@ public class CachedLocationRegistryRemote {
                 throw new InvalidStateException("Remote service is shutting down!");
             }
 
-            if (locationRegistryRemote == null) {
+            if (registryRemote == null) {
                 try {
-                    locationRegistryRemote = new LocationRegistryRemote();
-                    locationRegistryRemote.init();
-                    locationRegistryRemote.activate();
+                    registryRemote = new LocationRegistryRemote();
+                    registryRemote.init();
+                    registryRemote.activate();
                 } catch (CouldNotPerformException ex) {
-                    if (locationRegistryRemote != null) {
-                        locationRegistryRemote.shutdown();
-                        locationRegistryRemote = null;
+                    if (registryRemote != null) {
+                        registryRemote.shutdown();
+                        registryRemote = null;
                     }
                     throw ExceptionPrinter.printHistoryAndReturnThrowable(new CouldNotPerformException("Could not start cached location registry remote!", ex), LOGGER);
                 }
             }
-            return locationRegistryRemote;
+            return registryRemote;
         } catch (CouldNotPerformException ex) {
             throw new NotAvailableException("cached location registry", ex);
         }
     }
 
     public static void waitForData() throws InterruptedException, CouldNotPerformException {
-        if (locationRegistryRemote == null) {
+        if (registryRemote == null) {
             getRegistry();
         }
-        locationRegistryRemote.waitForData();
+        registryRemote.waitForData();
     }
 
     public static void waitForData(long timeout, TimeUnit timeUnit) throws CouldNotPerformException, InterruptedException {
-        if (locationRegistryRemote == null) {
+        if (registryRemote == null) {
             getRegistry();
         }
-        locationRegistryRemote.waitForData(timeout, timeUnit);
+        registryRemote.waitForData(timeout, timeUnit);
+    }
+    
+    /**
+     * Method blocks until the registry is not handling any tasks and is currently consistent.
+     *
+     * @throws InterruptedException is thrown in case the thread was externally interrupted.
+     * @throws org.openbase.jul.exception.CouldNotPerformException is thrown if the wait could not be performed.
+     */
+    public static void waitUntilReady() throws InterruptedException, CouldNotPerformException {
+        if (registryRemote == null) {
+            getRegistry();
+        }
+        registryRemote.waitUntilReady();
     }
 
     public static void shutdown() {
-        if (locationRegistryRemote != null) {
-            locationRegistryRemote.shutdown();
-            locationRegistryRemote = null;
+        if (registryRemote != null) {
+            registryRemote.shutdown();
+            registryRemote = null;
         }
     }
 }
