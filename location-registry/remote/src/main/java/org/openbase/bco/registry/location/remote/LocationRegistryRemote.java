@@ -27,16 +27,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
-import org.openbase.bco.registry.lib.com.AbstractRegistryRemote;
+import org.openbase.bco.registry.lib.com.AbstractVirtualRegistryRemote;
 import org.openbase.bco.registry.lib.com.SynchronizedRemoteRegistry;
 import org.openbase.bco.registry.location.lib.LocationRegistry;
 import org.openbase.bco.registry.location.lib.jp.JPLocationRegistryScope;
-import org.openbase.bco.registry.unit.lib.UnitRegistry;
 import org.openbase.bco.registry.unit.remote.CachedUnitRegistryRemote;
+import org.openbase.bco.registry.unit.remote.UnitRegistryRemote;
 import org.openbase.jps.core.JPService;
 import org.openbase.jps.exception.JPServiceException;
 import org.openbase.jps.preset.JPReadOnly;
 import org.openbase.jul.exception.CouldNotPerformException;
+import org.openbase.jul.exception.FatalImplementationErrorException;
 import org.openbase.jul.exception.InitializationException;
 import org.openbase.jul.exception.InstantiationException;
 import org.openbase.jul.exception.NotAvailableException;
@@ -46,6 +47,7 @@ import org.openbase.jul.storage.registry.RegistryRemote;
 import rsb.converter.DefaultConverterRepository;
 import rsb.converter.ProtocolBufferConverter;
 import rst.domotic.registry.LocationRegistryDataType.LocationRegistryData;
+import rst.domotic.registry.UnitRegistryDataType.UnitRegistryData;
 import rst.domotic.service.ServiceConfigType.ServiceConfig;
 import rst.domotic.service.ServiceTemplateType.ServiceTemplate.ServiceType;
 import rst.domotic.unit.UnitConfigType.UnitConfig;
@@ -60,7 +62,7 @@ import rst.tracking.PointingRay3DFloatType;
  *
  * @author <a href="mailto:divine@openbase.org">Divine Threepwood</a>
  */
-public class LocationRegistryRemote extends AbstractRegistryRemote<LocationRegistryData> implements LocationRegistry, RegistryRemote<LocationRegistryData> {
+public class LocationRegistryRemote extends AbstractVirtualRegistryRemote<LocationRegistryData> implements LocationRegistry, RegistryRemote<LocationRegistryData> {
 
     static {
         DefaultConverterRepository.getDefaultConverterRepository().addConverter(new ProtocolBufferConverter<>(LocationRegistryData.getDefaultInstance()));
@@ -71,7 +73,7 @@ public class LocationRegistryRemote extends AbstractRegistryRemote<LocationRegis
 
     private final SynchronizedRemoteRegistry<String, UnitConfig, UnitConfig.Builder> locationUnitConfigRemoteRegistry;
     private final SynchronizedRemoteRegistry<String, UnitConfig, UnitConfig.Builder> connectionUnitConfigRemoteRegistry;
-    private UnitRegistry unitRegistry;
+    private UnitRegistryRemote unitRegistry;
 
     public LocationRegistryRemote() throws InstantiationException {
         super(JPLocationRegistryScope.class, LocationRegistryData.class);
@@ -84,37 +86,29 @@ public class LocationRegistryRemote extends AbstractRegistryRemote<LocationRegis
     }
 
     @Override
-    protected void postInit() throws InitializationException, InterruptedException {
-        super.postInit();
+    protected void registerRemoteRegistries() throws CouldNotPerformException {
+        registerRemoteRegistry(locationUnitConfigRemoteRegistry);
+        registerRemoteRegistry(connectionUnitConfigRemoteRegistry);
+    }
+
+    @Override
+    protected void registerRegistryRemotes() throws InitializationException, InterruptedException {
         try {
             this.unitRegistry = CachedUnitRegistryRemote.getRegistry();
+            registerRegistryRemote(unitRegistry);
         } catch (NotAvailableException ex) {
             throw new InitializationException(this, ex);
         }
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public void shutdown() {
+    protected void bindRegistryRemoteToRemoteRegistries() {
         try {
-            unitRegistry.shutdown();
-        } finally {
-            super.shutdown();
+            bindRegistryRemoteToRemoteRegistry(locationUnitConfigRemoteRegistry, unitRegistry, UnitRegistryData.LOCATION_UNIT_CONFIG_FIELD_NUMBER);
+            bindRegistryRemoteToRemoteRegistry(connectionUnitConfigRemoteRegistry, unitRegistry, UnitRegistryData.CONNECTION_UNIT_CONFIG_FIELD_NUMBER);
+        } catch (CouldNotPerformException ex) {
+            new FatalImplementationErrorException("Could not bind registries", this, ex);
         }
-    }
-
-    @Override
-    public void waitForData() throws CouldNotPerformException, InterruptedException {
-        CachedUnitRegistryRemote.waitForData();
-        super.waitForData(); //To change body of generated methods, choose Tools | Templates.
-    }
-
-    @Override
-    protected void registerRemoteRegistries() throws CouldNotPerformException {
-        registerRemoteRegistry(locationUnitConfigRemoteRegistry);
-        registerRemoteRegistry(connectionUnitConfigRemoteRegistry);
     }
 
     public SynchronizedRemoteRegistry<String, UnitConfig, UnitConfig.Builder> getLocationConfigRemoteRegistry() {
@@ -286,7 +280,7 @@ public class LocationRegistryRemote extends AbstractRegistryRemote<LocationRegis
                     unitConfigList.add(unitConfig);
                 }
             } catch (CouldNotPerformException ex) {
-                ExceptionPrinter.printHistory(new CouldNotPerformException("Could not resolve UnitConfigId[" + unitConfigId + "] by device registry!", ex), logger);
+                ExceptionPrinter.printHistory(new CouldNotPerformException("Could not resolve UnitConfigId[" + unitConfigId + "] by UnitRegitryRemote!", ex), logger);
             }
         }
         return unitConfigList;
