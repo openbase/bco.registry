@@ -82,7 +82,7 @@
         </dependency>
         <dependency>
             <groupId>org.openbase.bco</groupId>
-            <artifactId>registry.location.remote</artifactId>
+            <artifactId>registry.remote</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

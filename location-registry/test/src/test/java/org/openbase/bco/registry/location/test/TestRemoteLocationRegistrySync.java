@@ -21,16 +21,8 @@ package org.openbase.bco.registry.location.test;
  * <http://www.gnu.org/licenses/gpl-3.0.html>.
  * #L%
  */
-import org.junit.Assert;
 import org.junit.BeforeClass;
-import org.junit.Test;
-import org.openbase.bco.registry.launch.RegistryLauncher;
-import org.openbase.bco.registry.remote.Registries;
 import org.openbase.jps.core.JPService;
-import org.openbase.jul.exception.CouldNotPerformException;
-import org.openbase.jul.pattern.Observable;
-import org.openbase.jul.schedule.GlobalCachedExecutorService;
-import rst.domotic.registry.LocationRegistryDataType.LocationRegistryData;
 
 /**
  *
@@ -38,7 +30,7 @@ import rst.domotic.registry.LocationRegistryDataType.LocationRegistryData;
  */
 public class TestRemoteLocationRegistrySync {
 
-    private final String absoluteDBPath = "/homes/thuxohl/release/local/var/bco/registry/db";
+//    private final String absoluteDBPath = "/homes/thuxohl/release/local/var/bco/registry/db";
 
     @BeforeClass
     public static void setUpClass() throws Exception {
@@ -51,32 +43,32 @@ public class TestRemoteLocationRegistrySync {
      * @throws Exception 
      */
     //@Test(timeout = 120000)
-    public void testInitialDBSync() throws Exception {
-        GlobalCachedExecutorService.submit(this::startRegistry);
-
-        Registries.getLocationRegistry().addDataObserver((Observable<LocationRegistryData> source, LocationRegistryData data) -> {
-            System.out.println("LocationRegistryUpdate with " + data.getLocationUnitConfigCount()+ " locations!");
-        });
-        Registries.getLocationRegistry().waitForData();
-        System.out.println("WaitForData has returned with " + Registries.getLocationRegistry().getData().getLocationUnitConfigCount() + " locations");
-        
-        Assert.assertTrue("LocationRegistry contains 0 locations after waitForData", Registries.getLocationRegistry().getData().getLocationUnitConfigCount() > 0);
-        
-        try {
-            Registries.getLocationRegistry().getUnitConfigsByLocation(Registries.getLocationRegistry().getRootLocationConfig().getId());
-        } catch (CouldNotPerformException ex) {
-            throw new CouldNotPerformException("Failed even though waitForDataReturned", ex);
-        }
-    }
-
-    public Void startRegistry() {
-        String[] args = new String[2];
-        args[0] = "--database";
-        args[1] = absoluteDBPath;
-
-        RegistryLauncher.main(args);
-
-        return null;
-    }
+//    public void testInitialDBSync() throws Exception {
+//        GlobalCachedExecutorService.submit(this::startRegistry);
+//
+//        Registries.getLocationRegistry().addDataObserver((Observable<LocationRegistryData> source, LocationRegistryData data) -> {
+//            System.out.println("LocationRegistryUpdate with " + data.getLocationUnitConfigCount()+ " locations!");
+//        });
+//        Registries.getLocationRegistry().waitForData();
+//        System.out.println("WaitForData has returned with " + Registries.getLocationRegistry().getData().getLocationUnitConfigCount() + " locations");
+//        
+//        Assert.assertTrue("LocationRegistry contains 0 locations after waitForData", Registries.getLocationRegistry().getData().getLocationUnitConfigCount() > 0);
+//        
+//        try {
+//            Registries.getLocationRegistry().getUnitConfigsByLocation(Registries.getLocationRegistry().getRootLocationConfig().getId());
+//        } catch (CouldNotPerformException ex) {
+//            throw new CouldNotPerformException("Failed even though waitForDataReturned", ex);
+//        }
+//    }
+//
+//    public Void startRegistry() {
+//        String[] args = new String[2];
+//        args[0] = "--database";
+//        args[1] = absoluteDBPath;
+//
+//        RegistryLauncher.main(args);
+//
+//        return null;
+//    }
 
 }
