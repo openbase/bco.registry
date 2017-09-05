@@ -21,7 +21,6 @@ package org.openbase.bco.registry.mock;
  * <http://www.gnu.org/licenses/gpl-3.0.html>.
  * #L%
  */
-import com.google.protobuf.ByteString;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -249,7 +248,8 @@ public class MockRegistry {
         CONNECTION(UnitType.CONNECTION),
         SCENE(UnitType.SCENE, ACTIVATION_SPS, ACTIVATION_SOS),
         AGENT(UnitType.AGENT, ACTIVATION_SPS, ACTIVATION_SOS),
-        APP(UnitType.APP, ACTIVATION_SPS, ACTIVATION_SOS);
+        APP(UnitType.APP, ACTIVATION_SPS, ACTIVATION_SOS),
+        UNIT_GROUP(UnitType.UNIT_GROUP, COLOR_SPS, COLOR_SOS, POWER_SPS, POWER_SOS);
 
         private final UnitTemplate template;
 
@@ -602,8 +602,7 @@ public class MockRegistry {
     }
 
     private void registerUser() throws CouldNotPerformException, InterruptedException {
-        byte[] password = Arrays.copyOf("12345678Password1234".getBytes(), 16);
-        UserConfig.Builder config = UserConfig.newBuilder().setFirstName("Max").setLastName("Mustermann").setUserName(USER_NAME).setPassword(ByteString.copyFrom(password));
+        UserConfig.Builder config = UserConfig.newBuilder().setFirstName("Max").setLastName("Mustermann").setUserName(USER_NAME);
         UnitConfig userUnitConfig = UnitConfig.newBuilder().setType(UnitType.USER).setUserConfig(config).setEnablingState(EnablingState.newBuilder().setValue(EnablingState.State.ENABLED)).build();
         try {
             testUser = userRegisty.registerUserConfig(userUnitConfig).get();
