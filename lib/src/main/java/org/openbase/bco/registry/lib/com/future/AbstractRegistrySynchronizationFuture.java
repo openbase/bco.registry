@@ -28,6 +28,8 @@ package org.openbase.bco.registry.lib.com.future;
  */
 import org.openbase.jul.schedule.AbstractSynchronizationFuture;
 import com.google.protobuf.GeneratedMessage;
+
+import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import org.openbase.bco.registry.lib.com.SynchronizedRemoteRegistry;
 import org.openbase.jul.exception.CouldNotPerformException;
@@ -41,32 +43,13 @@ import org.openbase.jul.storage.registry.RegistryRemote;
  * @author pleminoq
  * @param <M>
  */
-public abstract class AbstractRegistrySynchronizationFuture<M extends GeneratedMessage> extends AbstractSynchronizationFuture<M> {
+public abstract class AbstractRegistrySynchronizationFuture<M extends GeneratedMessage> extends AbstractSynchronizationFuture<M, RegistryRemote<?>> {
 
     private final SynchronizedRemoteRegistry<String, M, ?> remoteRegistry;
 
-    public AbstractRegistrySynchronizationFuture(final Future<M> internalFuture, final SynchronizedRemoteRegistry<String, M, ?> remoteRegistry, final RegistryRemote registryRemote) {
+    public AbstractRegistrySynchronizationFuture(final Future<M> internalFuture, final SynchronizedRemoteRegistry<String, M, ?> remoteRegistry, final RegistryRemote<?> registryRemote) {
         super(internalFuture, registryRemote);
         this.remoteRegistry = remoteRegistry;
-    }
-
-    @Override
-    protected void addObserver(Observer observer) {
-        remoteRegistry.addObserver(observer);
-    }
-
-    @Override
-    protected void removeObserver(Observer observer) {
-        remoteRegistry.removeObserver(observer);
-    }
-
-    @Override
-    protected void beforeWaitForSynchronization() throws CouldNotPerformException {
-        try {
-            remoteRegistry.waitForData();
-        } catch (InterruptedException ex) {
-            Thread.currentThread().interrupt();
-        }
     }
 
     @Override

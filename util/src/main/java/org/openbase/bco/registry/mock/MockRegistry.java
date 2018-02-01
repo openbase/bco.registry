@@ -97,6 +97,7 @@ import org.openbase.jul.pattern.Observer;
 import org.openbase.jul.schedule.GlobalCachedExecutorService;
 import org.openbase.jul.schedule.SyncObject;
 import org.slf4j.LoggerFactory;
+import rst.domotic.authentication.PermissionConfigType.PermissionConfig;
 import rst.domotic.binding.BindingConfigType.BindingConfig;
 import rst.domotic.service.ServiceConfigType;
 import rst.domotic.service.ServiceConfigType.ServiceConfig;
@@ -554,7 +555,6 @@ public class MockRegistry {
     private void registerLocations() throws CouldNotPerformException, InterruptedException {
         try {
             // Create paradise
-            LocationConfig zoneLocationConfig = LocationConfig.newBuilder().setType(LocationConfig.LocationType.ZONE).build();
             List<Vec3DDouble> paradiseVertices = new ArrayList<>();
             paradiseVertices.add(Vec3DDouble.newBuilder().setX(0).setY(0).setZ(0).build());
             paradiseVertices.add(Vec3DDouble.newBuilder().setX(0).setY(6).setZ(0).build());
@@ -562,9 +562,9 @@ public class MockRegistry {
             paradiseVertices.add(Vec3DDouble.newBuilder().setX(6).setY(0).setZ(0).build());
             Shape paradiseShape = Shape.newBuilder().addAllFloor(paradiseVertices).build();
             PlacementConfig paradisePlacement = PlacementConfig.newBuilder().setShape(paradiseShape).build();
-            paradiseLocation = locationRegistry.registerLocationConfig(UnitConfig.newBuilder().setType(UnitType.LOCATION)
-                    .setLabel("Paradise").setLocationConfig(zoneLocationConfig).setPlacementConfig(paradisePlacement).build()).get();
 
+            // rename default root location home into paradise test location.
+            paradiseLocation = locationRegistry.updateLocationConfig(locationRegistry.getRootLocationConfig().toBuilder().setLabel("Paradise").setPlacementConfig(paradisePlacement).build()).get();
             LocationConfig tileLocationConfig = LocationConfig.newBuilder().setType(LocationType.TILE).build();
             LocationConfig regionLocationConfig = LocationConfig.newBuilder().setType(LocationType.REGION).build();
 
@@ -669,9 +669,10 @@ public class MockRegistry {
         }
 
         UserConfig.Builder config = UserConfig.newBuilder().setFirstName("Max").setLastName("Mustermann").setUserName(USER_NAME);
-        UnitConfig userUnitConfig = UnitConfig.newBuilder().setType(UnitType.USER).setUserConfig(config).setEnablingState(EnablingState.newBuilder().setValue(EnablingState.State.ENABLED)).build();
+        UnitConfig.Builder userUnitConfig = UnitConfig.newBuilder().setType(UnitType.USER).setUserConfig(config).setEnablingState(EnablingState.newBuilder().setValue(EnablingState.State.ENABLED));
+        userUnitConfig.getPermissionConfigBuilder().getOtherPermissionBuilder().setWrite(true).setAccess(true).setRead(true);
         try {
-            testUser = userRegisty.registerUserConfig(userUnitConfig).get();
+            testUser = userRegisty.registerUserConfig(userUnitConfig.build()).get();
         } catch (ExecutionException ex) {
             throw new CouldNotPerformException(ex);
         }

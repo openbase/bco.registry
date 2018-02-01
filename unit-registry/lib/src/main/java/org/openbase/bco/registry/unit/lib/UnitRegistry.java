@@ -23,19 +23,23 @@ package org.openbase.bco.registry.unit.lib;
  *
  * @author <a href="mailto:divine@openbase.org">Divine Threepwood</a>
  */
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+
+import java.util.*;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+
 import org.openbase.bco.registry.lib.util.UnitConfigProcessor;
+import org.openbase.bco.registry.unit.lib.provider.UnitTransformationProviderRegistry;
+import org.openbase.bco.registry.lib.provider.UnitConfigCollectionProvider;
 import org.openbase.jul.exception.CouldNotPerformException;
 import org.openbase.jul.exception.InvalidStateException;
+import org.openbase.jul.exception.NotAvailableException;
 import org.openbase.jul.exception.VerificationFailedException;
 import org.openbase.jul.extension.rsb.scope.ScopeGenerator;
 import org.openbase.jul.iface.Shutdownable;
 import org.openbase.jul.iface.annotations.RPCMethod;
 import org.openbase.jul.pattern.provider.DataProvider;
+import org.openbase.jul.storage.registry.ProtoBufFileSynchronizedRegistry;
 import rst.domotic.authentication.AuthenticatedValueType.AuthenticatedValue;
 import rst.domotic.registry.UnitRegistryDataType.UnitRegistryData;
 import rst.domotic.service.ServiceConfigType;
@@ -45,25 +49,28 @@ import rst.domotic.service.ServiceTemplateType.ServiceTemplate.ServiceType;
 import rst.domotic.unit.UnitConfigType.UnitConfig;
 import rst.domotic.unit.UnitTemplateType.UnitTemplate;
 import rst.domotic.unit.UnitTemplateType.UnitTemplate.UnitType;
+import rst.math.Vec3DDoubleType.Vec3DDouble;
 import rst.rsb.ScopeType.Scope;
 
-public interface UnitRegistry extends DataProvider<UnitRegistryData>, Shutdownable {
+import javax.vecmath.Point3d;
+
+public interface UnitRegistry extends DataProvider<UnitRegistryData>, UnitTransformationProviderRegistry<UnitRegistryData>, UnitConfigCollectionProvider, Shutdownable {
 
     @RPCMethod
     public Future<UnitConfig> registerUnitConfig(final UnitConfig unitConfig) throws CouldNotPerformException;
-    
+
     @RPCMethod
     public Future<AuthenticatedValue> registerUnitConfigAuthenticated(final AuthenticatedValue authenticatedValue) throws CouldNotPerformException;
 
     @RPCMethod
     public Future<UnitConfig> updateUnitConfig(final UnitConfig unitConfig) throws CouldNotPerformException;
-    
+
     @RPCMethod
     public Future<AuthenticatedValue> updateUnitConfigAuthenticated(final AuthenticatedValue authenticatedValue) throws CouldNotPerformException;
 
     @RPCMethod
     public Future<UnitConfig> removeUnitConfig(final UnitConfig unitConfig) throws CouldNotPerformException;
-    
+
     @RPCMethod
     public Future<AuthenticatedValue> removeUnitConfigAuthenticated(final AuthenticatedValue authenticatedValue) throws CouldNotPerformException;
 
@@ -71,12 +78,14 @@ public interface UnitRegistry extends DataProvider<UnitRegistryData>, Shutdownab
     public Boolean containsUnitConfig(final UnitConfig unitConfig) throws CouldNotPerformException;
 
     @RPCMethod
-    public Boolean containsUnitConfigById(final String unitConfigId) throws CouldNotPerformException;
-
-    @RPCMethod
-    public UnitConfig getUnitConfigById(final String unitConfigId) throws CouldNotPerformException;
-
-    public List<UnitConfig> getUnitConfigs() throws CouldNotPerformException;
+    public default Boolean containsUnitConfigByAlias(final String alias) throws CouldNotPerformException {
+        try {
+            getUnitConfigByAlias(alias);
+        } catch (final NotAvailableException ex) {
+            return false;
+        }
+        return true;
+    }
 
     public default List<UnitConfig> getUnitConfigsByServices(final ServiceType... serviceTypes) throws CouldNotPerformException {
         return getUnitConfigsByService(Arrays.asList(serviceTypes));
@@ -109,12 +118,18 @@ public interface UnitRegistry extends DataProvider<UnitRegistryData>, Shutdownab
     }
 
     @RPCMethod
+    default public String getUnitScopeByAlias(final String alias) throws CouldNotPerformException {
+        return ScopeGenerator.generateStringRep(getUnitConfigByAlias(alias).getScope());
+    }
+
+    @RPCMethod
     public Boolean isUnitConfigRegistryReadOnly() throws CouldNotPerformException;
 
     /**
      * Method returns true if the underling registry is marked as consistent.
      *
      * @return if the UnitConfig registry is consistent
+     *
      * @throws CouldNotPerformException if the check fails
      */
     @RPCMethod
@@ -159,11 +174,38 @@ public interface UnitRegistry extends DataProvider<UnitRegistryData>, Shutdownab
     public Boolean containsUnitGroupConfigById(final String groupConfigId) throws CouldNotPerformException;
 
     /**
+     * Method returns the unit matching the given alias. An alias is an unique identifiere of units.
+     * <p>
+     * Hint: If you want to address more than one unit with an alias than create a unit group of such units and define an alias for those group.
+     *
+     * @param unitAlias the alias to identify the unit.
+     *
+     * @return the unit config referred by the alias.
+     *
+     * @throws NotAvailableException    is thrown if no unit is matching the given alias.
+     * @throws CouldNotPerformException is thrown if something went wrong during the lookup.
+     */
+    @RPCMethod
+    public default UnitConfig getUnitConfigByAlias(final String unitAlias) throws CouldNotPerformException {
+        validateData();
+        for (UnitConfig unitConfig : getUnitConfigs()) {
+            for (final String alias : unitConfig.getAliasList()) {
+                if (alias.equalsIgnoreCase(unitAlias)) {
+                    return unitConfig;
+                }
+            }
+        }
+        throw new NotAvailableException("UnitConfig", "alias:" + unitAlias);
+    }
+
+    /**
      * Method returns all registered units with the given label. Label resolving
      * is done case insensitive!
      *
      * @param unitConfigLabel
+     *
      * @return
+     *
      * @throws CouldNotPerformException
      */
     public List<UnitConfig> getUnitConfigsByLabel(final String unitConfigLabel) throws CouldNotPerformException;
@@ -177,7 +219,27 @@ public interface UnitRegistry extends DataProvider<UnitRegistryData>, Shutdownab
         return unitConfigs;
     }
 
-    public List<UnitConfig> getUnitConfigs(final UnitType type) throws CouldNotPerformException;
+    /**
+     * Method returns a list of all globally registered units of the given {@code type}.
+     * <p>
+     * Note: The type {@code UnitType.UNKNOWN} is used as wildcard and will return a list of all registered units.
+     *
+     * @param type the unit type to filter.
+     *
+     * @return a list of unit configurations.
+     *
+     * @throws CouldNotPerformException is thrown in case something goes wrong during the request.
+     */
+    public default List<UnitConfig> getUnitConfigs(final UnitType type) throws CouldNotPerformException {
+        validateData();
+        List<UnitConfig> unitConfigs = new ArrayList<>();
+        for (UnitConfig unitConfig : getUnitConfigs()) {
+            if (type == UnitType.UNKNOWN || unitConfig.getType() == type || getSubUnitTypes(type).contains(unitConfig.getType())) {
+                unitConfigs.add(unitConfig);
+            }
+        }
+        return unitConfigs;
+    }
 
     /**
      * Method returns a list of all globally registered dal units.
@@ -185,6 +247,7 @@ public interface UnitRegistry extends DataProvider<UnitRegistryData>, Shutdownab
      * Base units are units of the following types: LOCATION, CONNECTION, SCENE, AGENT, APP, DEVICE, USER, AUTHORIZATION_GROUP, UNIT_GROUP
      *
      * @return a list of dal units.
+     *
      * @throws CouldNotPerformException is thrown in case something goes wrong during the request.
      */
     public List<UnitConfig> getDalUnitConfigs() throws CouldNotPerformException;
@@ -194,6 +257,7 @@ public interface UnitRegistry extends DataProvider<UnitRegistryData>, Shutdownab
      * Base units are units of the following types: LOCATION, CONNECTION, SCENE, AGENT, APP, DEVICE, USER, AUTHORIZATION_GROUP, UNIT_GROUP
      *
      * @return a list of base units.
+     *
      * @throws CouldNotPerformException is thrown in case something goes wrong during the request.
      */
     public List<UnitConfig> getBaseUnitConfigs() throws CouldNotPerformException;
@@ -229,7 +293,9 @@ public interface UnitRegistry extends DataProvider<UnitRegistryData>, Shutdownab
      * given scope.
      *
      * @param scope
+     *
      * @return the unit config matching the given scope.
+     *
      * @throws CouldNotPerformException
      */
     @RPCMethod
@@ -240,7 +306,9 @@ public interface UnitRegistry extends DataProvider<UnitRegistryData>, Shutdownab
      * sub types of LIGHT.
      *
      * @param type the super type whose sub types are searched
+     *
      * @return all types of which the given type is a super type
+     *
      * @throws CouldNotPerformException
      * @deprecated please use getSubUnitTypes instead
      */
@@ -254,7 +322,9 @@ public interface UnitRegistry extends DataProvider<UnitRegistryData>, Shutdownab
      * sub types of LIGHT.
      *
      * @param type the super type whose sub types are searched
+     *
      * @return all types of which the given type is a super type
+     *
      * @throws CouldNotPerformException
      */
     public List<UnitType> getSubUnitTypes(final UnitType type) throws CouldNotPerformException;
@@ -264,7 +334,9 @@ public interface UnitRegistry extends DataProvider<UnitRegistryData>, Shutdownab
      * super types of COLORABLE_LIGHT.
      *
      * @param type the type whose super types are returned
+     *
      * @return all super types of a given unit type
+     *
      * @throws CouldNotPerformException
      */
     public List<UnitType> getSuperUnitTypes(final UnitType type) throws CouldNotPerformException;
@@ -357,4 +429,48 @@ public interface UnitRegistry extends DataProvider<UnitRegistryData>, Shutdownab
 
     @RPCMethod
     public Boolean isServiceTemplateRegistryConsistent() throws CouldNotPerformException;
+
+
+    /**
+     * The default radius used for the unit by coordinate lookup is set to 1 metre.
+     */
+    public static final double DEFAULT_RADIUS = 1d;
+
+    public default List<UnitConfig> getUnitConfigsByCoordinate(final Vec3DDouble coordinate) throws CouldNotPerformException {
+        return getUnitConfigsByCoordinate(coordinate, DEFAULT_RADIUS, UnitType.UNKNOWN);
+    }
+
+    public default List<UnitConfig> getUnitConfigsByCoordinate(final Vec3DDouble coordinate, final double radius) throws CouldNotPerformException {
+        return getUnitConfigsByCoordinate(coordinate, radius, UnitType.UNKNOWN);
+    }
+
+
+    /**
+     * Method returns a list of {@code UnitConfig} instances sorted by the distance to the given {@code coordinate} starting with the lowest one.
+     * The lookup time can be reduced by filtering the results with a {@code UnitType} where the {@code UnitType.UNKNOWN} is used as wildcard.
+     * The given radius can be used to limit the result as well but will not speed up the lookup.
+     *
+     * @param coordinate
+     * @param radius
+     * @param unitType
+     *
+     * @return
+     *
+     * @throws CouldNotPerformException
+     */
+    public default List<UnitConfig> getUnitConfigsByCoordinate(final Vec3DDouble coordinate, final double radius, final UnitType unitType) throws CouldNotPerformException {
+
+        // init
+        TreeMap<Double, UnitConfig> result = new TreeMap<>();
+        final Point3d unitPosition = new Point3d(coordinate.getX(), coordinate.getY(), coordinate.getZ());
+
+        // lookup distances
+        for (final UnitConfig unitConfig : getUnitConfigs(unitType)) {
+            final double distance = unitPosition.distance(getUnitPositionGlobalPoint3d(unitConfig));
+            if (distance <= radius) {
+                result.put(radius, unitConfig);
+            }
+        }
+        return new ArrayList<>(result.values());
+    }
 }

@@ -1,4 +1,4 @@
-package org.openbase.bco.registry.unit.core.consistency.locationconfig;
+package org.openbase.bco.registry.unit.core.consistency.userconfig;
 
 /*
  * #%L
@@ -21,33 +21,38 @@ package org.openbase.bco.registry.unit.core.consistency.locationconfig;
  * <http://www.gnu.org/licenses/gpl-3.0.html>.
  * #L%
  */
-import org.openbase.bco.registry.lib.util.LocationUtils;
+
 import org.openbase.jul.exception.CouldNotPerformException;
 import org.openbase.jul.extension.protobuf.IdentifiableMessage;
 import org.openbase.jul.extension.protobuf.container.ProtoBufMessageMap;
 import org.openbase.jul.storage.registry.AbstractProtoBufRegistryConsistencyHandler;
 import org.openbase.jul.storage.registry.EntryModification;
 import org.openbase.jul.storage.registry.ProtoBufRegistry;
+import rst.domotic.authentication.PermissionConfigType.PermissionConfig;
+import rst.domotic.authentication.PermissionConfigType.PermissionConfig.Builder;
+import rst.domotic.authentication.PermissionConfigType.PermissionConfig.MapFieldEntry;
 import rst.domotic.unit.UnitConfigType.UnitConfig;
 
 /**
- *
- @author <a href="mailto:divine@openbase.org">Divine Threepwood</a>
+ * @author <a href="mailto:pleminoq@openbase.org">Tamino Huxohl</a>
  */
-public class RootLocationExistencConsistencyHandler extends AbstractProtoBufRegistryConsistencyHandler<String, UnitConfig, UnitConfig.Builder> {
-
-    private UnitConfig rootLocation;
+public class UserPermissionConsistencyHandler extends AbstractProtoBufRegistryConsistencyHandler<String, UnitConfig, UnitConfig.Builder> {
 
     @Override
     public void processData(String id, IdentifiableMessage<String, UnitConfig, UnitConfig.Builder> entry, ProtoBufMessageMap<String, UnitConfig, UnitConfig.Builder> entryMap, ProtoBufRegistry<String, UnitConfig, UnitConfig.Builder> registry) throws CouldNotPerformException, EntryModification {
-        if (rootLocation == null) {
-            rootLocation = LocationUtils.detectRootLocation(entry.getMessage(), entryMap, this);
-            //todo pleminoq really? is here maybe something missing? =D
+        UnitConfig UserUnitConfig = entry.getMessage();
+
+        if (!UserUnitConfig.hasPermissionConfig()) {
+            entry.setMessage(UserUnitConfig.toBuilder().setPermissionConfig(generateDefaultPermissionConfig(UserUnitConfig)));
+            throw new EntryModification(entry, this);
         }
     }
 
-    @Override
-    public void reset() {
-        rootLocation = null;
+    public PermissionConfig generateDefaultPermissionConfig(final UnitConfig UserUnitConfig) {
+        Builder permissionConfigBuilder = PermissionConfig.newBuilder();
+        permissionConfigBuilder.setOwnerId(UserUnitConfig.getId());
+        permissionConfigBuilder.getOwnerPermissionBuilder().setWrite(true).setAccess(true).setRead(true);
+        permissionConfigBuilder.getOtherPermissionBuilder().setWrite(false).setAccess(false).setRead(false);
+        return permissionConfigBuilder.build();
     }
 }

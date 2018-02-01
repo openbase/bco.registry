@@ -32,19 +32,7 @@ import org.openbase.bco.registry.app.remote.CachedAppRegistryRemote;
 import org.openbase.bco.registry.device.remote.CachedDeviceRegistryRemote;
 import org.openbase.bco.registry.device.remote.DeviceRegistryRemote;
 import org.openbase.bco.registry.lib.com.AbstractRegistryController;
-import org.openbase.bco.registry.unit.core.consistency.BoundingBoxCleanerConsistencyHandler;
-import org.openbase.bco.registry.unit.core.consistency.DeviceInventoryStateConsistencyHandler;
-import org.openbase.bco.registry.unit.core.consistency.ExecutableUnitAutostartConsistencyHandler;
-import org.openbase.bco.registry.unit.core.consistency.GroupPermissionConsistencyHandler;
-import org.openbase.bco.registry.unit.core.consistency.OtherPermissionConsistencyHandler;
-import org.openbase.bco.registry.unit.core.consistency.LocationShapeConsistencyHandler;
-import org.openbase.bco.registry.unit.core.consistency.ServiceConfigServiceTemplateIdConsistencyHandler;
-import org.openbase.bco.registry.unit.core.consistency.ServiceConfigUnitIdConsistencyHandler;
-import org.openbase.bco.registry.unit.core.consistency.UnitConfigUnitTemplateConsistencyHandler;
-import org.openbase.bco.registry.unit.core.consistency.UnitEnablingStateConsistencyHandler;
-import org.openbase.bco.registry.unit.core.consistency.UnitPermissionCleanerConsistencyHandler;
-import org.openbase.bco.registry.unit.core.consistency.UnitLocationIdConsistencyHandler;
-import org.openbase.bco.registry.unit.core.consistency.UnitPositionCleanerConsistencyHandler;
+import org.openbase.bco.registry.unit.core.consistency.*;
 import org.openbase.bco.registry.unit.core.consistency.agentconfig.AgentLabelConsistencyHandler;
 import org.openbase.bco.registry.unit.core.consistency.agentconfig.AgentLocationConsistencyHandler;
 import org.openbase.bco.registry.unit.core.consistency.agentconfig.AgentScopeConsistencyHandler;
@@ -53,6 +41,7 @@ import org.openbase.bco.registry.unit.core.consistency.appconfig.AppLocationCons
 import org.openbase.bco.registry.unit.core.consistency.appconfig.AppScopeConsistencyHandler;
 import org.openbase.bco.registry.unit.core.consistency.authorizationgroup.AuthorizationGroupConfigLabelConsistencyHandler;
 import org.openbase.bco.registry.unit.core.consistency.authorizationgroup.AuthorizationGroupConfigScopeConsistencyHandler;
+import org.openbase.bco.registry.unit.core.consistency.authorizationgroup.AuthorizationGroupPermissionConsistencyHandler;
 import org.openbase.bco.registry.unit.core.consistency.authorizationgroup.AuthorziationGroupDuplicateMemberConsistencyHandler;
 import org.openbase.bco.registry.unit.core.consistency.connectionconfig.ConnectionLabelConsistencyHandler;
 import org.openbase.bco.registry.unit.core.consistency.connectionconfig.ConnectionLocationConsistencyHandler;
@@ -101,19 +90,13 @@ import org.openbase.bco.registry.unit.core.consistency.unittemplate.UniteTemplat
 import org.openbase.bco.registry.unit.core.consistency.userconfig.UserConfigLabelConsistencyHandler;
 import org.openbase.bco.registry.unit.core.consistency.userconfig.UserConfigScopeConsistencyHandler;
 import org.openbase.bco.registry.unit.core.consistency.userconfig.UserConfigUserNameConsistencyHandler;
-import org.openbase.bco.registry.unit.core.plugin.AuthorizationGroupCreationPlugin;
-import org.openbase.bco.registry.unit.core.plugin.UserCreationPlugin;
-import org.openbase.bco.registry.unit.core.plugin.DalUnitBoundToHostPlugin;
-import org.openbase.bco.registry.unit.core.plugin.DeviceConfigDeviceClassUnitConsistencyPlugin;
-import org.openbase.bco.registry.unit.core.plugin.LocationRemovalPlugin;
-import org.openbase.bco.registry.unit.core.plugin.PublishLocationTransformationRegistryPlugin;
-import org.openbase.bco.registry.unit.core.plugin.PublishUnitTransformationRegistryPlugin;
-import org.openbase.bco.registry.unit.core.plugin.ServiceTemplateCreatorRegistryPlugin;
-import org.openbase.bco.registry.unit.core.plugin.UnitTemplateCreatorRegistryPlugin;
+import org.openbase.bco.registry.unit.core.consistency.userconfig.UserPermissionConsistencyHandler;
+import org.openbase.bco.registry.unit.core.plugin.*;
 import org.openbase.bco.registry.unit.lib.UnitRegistry;
 import org.openbase.bco.registry.unit.lib.generator.ServiceTemplateIdGenerator;
 import org.openbase.bco.registry.unit.lib.generator.UnitConfigIdGenerator;
 import org.openbase.bco.registry.unit.lib.generator.UnitTemplateIdGenerator;
+import org.openbase.bco.registry.unit.lib.generator.UntShapeGenerator;
 import org.openbase.bco.registry.unit.lib.jp.JPAgentConfigDatabaseDirectory;
 import org.openbase.bco.registry.unit.lib.jp.JPAppConfigDatabaseDirectory;
 import org.openbase.bco.registry.unit.lib.jp.JPAuthorizationGroupConfigDatabaseDirectory;
@@ -168,6 +151,7 @@ import rst.domotic.unit.scene.SceneConfigType.SceneConfig;
 import rst.domotic.unit.unitgroup.UnitGroupConfigType.UnitGroupConfig;
 import rst.domotic.unit.user.UserConfigType.UserConfig;
 import rst.rsb.ScopeType;
+import rst.spatial.ShapeType.Shape;
 
 /**
  *
@@ -293,7 +277,8 @@ public class UnitRegistryController extends AbstractRegistryController<UnitRegis
             authorizationGroupUnitConfigRegistry.registerConsistencyHandler(new AuthorizationGroupConfigLabelConsistencyHandler());
             authorizationGroupUnitConfigRegistry.registerConsistencyHandler(new AuthorizationGroupConfigScopeConsistencyHandler());
             authorizationGroupUnitConfigRegistry.registerConsistencyHandler(new AuthorziationGroupDuplicateMemberConsistencyHandler());
-            
+            authorizationGroupUnitConfigRegistry.registerConsistencyHandler(new AuthorizationGroupPermissionConsistencyHandler());
+
             connectionUnitConfigRegistry.registerConsistencyHandler(new ConnectionLabelConsistencyHandler());
             connectionUnitConfigRegistry.registerConsistencyHandler(new ConnectionTilesConsistencyHandler(locationUnitConfigRegistry));
             connectionUnitConfigRegistry.registerConsistencyHandler(new ConnectionLocationConsistencyHandler(locationUnitConfigRegistry));
@@ -321,7 +306,8 @@ public class UnitRegistryController extends AbstractRegistryController<UnitRegis
             userUnitConfigRegistry.registerConsistencyHandler(new UserConfigScopeConsistencyHandler());
             userUnitConfigRegistry.registerConsistencyHandler(new UserConfigUserNameConsistencyHandler());
             userUnitConfigRegistry.registerConsistencyHandler(new UserConfigLabelConsistencyHandler());
-            
+            userUnitConfigRegistry.registerConsistencyHandler(new UserPermissionConsistencyHandler());
+
             unitGroupUnitConfigRegistry.registerConsistencyHandler(new UnitGroupMemberListDuplicationConsistencyHandler());
             unitGroupUnitConfigRegistry.registerConsistencyHandler(new UnitGroupMemberExistsConsistencyHandler(agentUnitConfigRegistry, appUnitConfigRegistry, authorizationGroupUnitConfigRegistry, connectionUnitConfigRegistry, dalUnitConfigRegistry, deviceUnitConfigRegistry, locationUnitConfigRegistry, sceneUnitConfigRegistry, unitGroupUnitConfigRegistry, userUnitConfigRegistry));
             unitGroupUnitConfigRegistry.registerConsistencyHandler(new UnitGroupServiceDescriptionServiceTemplateIdConsistencyHandler(serviceTemplateRegistry));
@@ -352,11 +338,14 @@ public class UnitRegistryController extends AbstractRegistryController<UnitRegis
             registerConsistencyHandler(new UnitLocationIdConsistencyHandler(locationUnitConfigRegistry), UnitConfig.class);
             registerConsistencyHandler(new ServiceConfigUnitIdConsistencyHandler(), UnitConfig.class);
             registerConsistencyHandler(new UnitConfigUnitTemplateConsistencyHandler(unitTemplateRegistry), UnitConfig.class);
+            registerConsistencyHandler(new UnitAliasUniqueVerificationConsistencyHandler(this), UnitConfig.class);
+            registerConsistencyHandler(new UnitAliasGenerationConsistencyHandler(), UnitConfig.class);
             registerConsistencyHandler(new UnitEnablingStateConsistencyHandler(), UnitConfig.class);
             registerConsistencyHandler(new ServiceConfigServiceTemplateIdConsistencyHandler(serviceTemplateRegistry), UnitConfig.class);
             registerConsistencyHandler(new BoundingBoxCleanerConsistencyHandler(), UnitConfig.class);
             registerConsistencyHandler(new UnitTransformationFrameConsistencyHandler(locationUnitConfigRegistry), UnitConfig.class);
             registerConsistencyHandler(new UnitPermissionCleanerConsistencyHandler(authorizationGroupUnitConfigRegistry, locationUnitConfigRegistry), UnitConfig.class);
+
             try {
                 if (JPService.getProperty(JPAuthentication.class).getValue()) {
                     registerConsistencyHandler(new OtherPermissionConsistencyHandler(), UnitConfig.class);
@@ -384,6 +373,7 @@ public class UnitRegistryController extends AbstractRegistryController<UnitRegis
     protected void registerPlugins() throws CouldNotPerformException, InterruptedException {
         serviceTemplateRegistry.registerPlugin(new ServiceTemplateCreatorRegistryPlugin(serviceTemplateRegistry));
         unitTemplateRegistry.registerPlugin(new UnitTemplateCreatorRegistryPlugin(unitTemplateRegistry));
+        locationUnitConfigRegistry.registerPlugin(new RootLocationPlugin());
         try {
             if (JPService.getProperty(JPAuthentication.class).getValue()) {
                 authorizationGroupUnitConfigRegistry.registerPlugin(new AuthorizationGroupCreationPlugin(authorizationGroupUnitConfigRegistry));
@@ -814,24 +804,6 @@ public class UnitRegistryController extends AbstractRegistryController<UnitRegis
     @Override
     public Boolean isUnitGroupConfigRegistryConsistent() throws CouldNotPerformException {
         return unitGroupUnitConfigRegistry.isConsistent();
-    }
-
-    /**
-     * {@inheritDoc}
-     *
-     * @param type
-     * @return
-     * @throws CouldNotPerformException
-     */
-    @Override
-    public List<UnitConfig> getUnitConfigs(final UnitType type) throws CouldNotPerformException {
-        List<UnitConfig> unitConfigs = new ArrayList<>();
-        for (UnitConfig unitConfig : getUnitConfigs()) {
-            if (type == UnitType.UNKNOWN || unitConfig.getType() == type || getSubUnitTypesOfUnitType(type).contains(unitConfig.getType())) {
-                unitConfigs.add(unitConfig);
-            }
-        }
-        return unitConfigs;
     }
 
     /**
@@ -1345,5 +1317,16 @@ public class UnitRegistryController extends AbstractRegistryController<UnitRegis
     @Override
     public Boolean isServiceTemplateRegistryConsistent() throws CouldNotPerformException {
         return serviceTemplateRegistry.isConsistent();
+    }
+
+    @Override
+    public Shape getUnitShape(final UnitConfig unitConfig) throws NotAvailableException {
+        try {
+            return UntShapeGenerator.generateUnitShape(unitConfig, this, CachedDeviceRegistryRemote.getRegistry());
+        } catch (InterruptedException ex) {
+            // because registries should not throw interrupted exceptions in a future release this exception is already transformed into a NotAvailableException.
+            Thread.currentThread().interrupt();
+            throw new NotAvailableException("UnitShape", new CouldNotPerformException("Shutdown in progress"));
+        }
     }
 }
