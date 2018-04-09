@@ -21,18 +21,18 @@ package org.openbase.bco.registry.unit.lib.jp;
  * <http://www.gnu.org/licenses/lgpl-3.0.html>.
  * #L%
  */
-import java.io.File;
+
+import org.openbase.bco.registry.lib.jp.JPBCODatabaseDirectory;
 import org.openbase.jps.core.JPService;
 import org.openbase.jps.exception.JPNotAvailableException;
-import org.openbase.jul.storage.registry.jp.AbstractJPDatabaseDirectory;
-import org.openbase.jul.storage.registry.jp.JPDatabaseDirectory;
-import org.openbase.jul.storage.registry.jp.JPInitializeDB;
+import org.openbase.jul.storage.registry.jp.AbstractJPLocalDatabaseDirectory;
+
+import java.io.File;
 
 /**
- *
  * @author <a href="mailto:divine@openbase.org">Divine Threepwood</a>
  */
-public class JPDalUnitConfigDatabaseDirectory extends AbstractJPDatabaseDirectory {
+public class JPDalUnitConfigDatabaseDirectory extends AbstractJPLocalDatabaseDirectory {
 
     public final static String[] COMMAND_IDENTIFIERS = {"--dal-unit-config-db"};
 
@@ -42,16 +42,11 @@ public class JPDalUnitConfigDatabaseDirectory extends AbstractJPDatabaseDirector
 
     @Override
     public File getParentDirectory() throws JPNotAvailableException {
-        return JPService.getProperty(JPDatabaseDirectory.class).getValue();
+        return JPService.getProperty(JPBCODatabaseDirectory.class).getValue();
     }
 
     @Override
     protected File getPropertyDefaultValue() {
         return new File("dal-unit-config-db");
-    }
-
-    @Override
-    public String getDescription() {
-        return "Specifies the dal unit config database directory. Use  " + JPInitializeDB.COMMAND_IDENTIFIERS[0] + " to auto create database directories.";
     }
 }

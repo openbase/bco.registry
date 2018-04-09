@@ -22,18 +22,18 @@ package org.openbase.bco.registry.unit.lib.jp;
  * #L%
  */
 
+import org.openbase.bco.registry.lib.jp.JPBCODatabaseDirectory;
 import org.openbase.jps.core.JPService;
 import org.openbase.jps.exception.JPNotAvailableException;
-import org.openbase.jul.storage.registry.jp.AbstractJPDatabaseDirectory;
-import org.openbase.jul.storage.registry.jp.JPDatabaseDirectory;
-import org.openbase.jul.storage.registry.jp.JPInitializeDB;
+import org.openbase.jul.storage.registry.jp.AbstractJPLocalDatabaseDirectory;
+
 import java.io.File;
 
 /**
  *
  @author <a href="mailto:divine@openbase.org">Divine Threepwood</a>
  */
-public class JPSceneConfigDatabaseDirectory extends AbstractJPDatabaseDirectory {
+public class JPSceneConfigDatabaseDirectory extends AbstractJPLocalDatabaseDirectory {
 
     public final static String[] COMMAND_IDENTIFIERS = {"--scene-config-db"};
 
@@ -43,16 +43,11 @@ public class JPSceneConfigDatabaseDirectory extends AbstractJPDatabaseDirectory 
 
     @Override
     public File getParentDirectory() throws JPNotAvailableException {
-        return JPService.getProperty(JPDatabaseDirectory.class).getValue();
+        return JPService.getProperty(JPBCODatabaseDirectory.class).getValue();
     }
 
     @Override
     protected File getPropertyDefaultValue() {
         return new File("scene-config-db");
-    }
-
-    @Override
-    public String getDescription() {
-        return "Specifies the scene config database directory. Use  " + JPInitializeDB.COMMAND_IDENTIFIERS[0] + " to auto create database directories.";
     }
 }

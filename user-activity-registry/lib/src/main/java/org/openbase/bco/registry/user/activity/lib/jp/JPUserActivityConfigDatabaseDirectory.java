@@ -22,18 +22,18 @@ package org.openbase.bco.registry.user.activity.lib.jp;
  * #L%
  */
 
-import java.io.File;
+import org.openbase.bco.registry.lib.jp.JPBCODatabaseDirectory;
 import org.openbase.jps.core.JPService;
 import org.openbase.jps.exception.JPNotAvailableException;
-import org.openbase.jul.storage.registry.jp.AbstractJPDatabaseDirectory;
-import org.openbase.jul.storage.registry.jp.JPDatabaseDirectory;
-import org.openbase.jul.storage.registry.jp.JPInitializeDB;
+import org.openbase.jul.storage.registry.jp.AbstractJPLocalDatabaseDirectory;
+
+import java.io.File;
 
 /**
  *
  * @author <a href="mailto:pLeminoq@openbase.org">Tamino Huxohl</a>
  */
-public class JPUserActivityConfigDatabaseDirectory extends AbstractJPDatabaseDirectory {
+public class JPUserActivityConfigDatabaseDirectory extends AbstractJPLocalDatabaseDirectory {
 
     public final static String[] COMMAND_IDENTIFIERS = {"--user-activity-config-db"};
 
@@ -43,16 +43,10 @@ public class JPUserActivityConfigDatabaseDirectory extends AbstractJPDatabaseDir
 
     @Override
     public File getParentDirectory() throws JPNotAvailableException {
-        return JPService.getProperty(JPDatabaseDirectory.class).getValue();
+        return JPService.getProperty(JPBCODatabaseDirectory.class).getValue();
     }
-
     @Override
     protected File getPropertyDefaultValue() {
         return new File("user-activity-config-db");
-    }
-
-    @Override
-    public String getDescription() {
-        return "Specifies the user activity config database directory. Use  " + JPInitializeDB.COMMAND_IDENTIFIERS[0] + " to auto create database directories.";
     }
 }
