@@ -785,7 +785,7 @@ public class UnitRegistryRemote extends AbstractRegistryRemote<UnitRegistryData>
                 authorizationToken,
                 String.class,
                 SessionManager.getInstance(),
-                this::requestAuthorizationTokenAuthenticated
+                authenticatedValue -> requestAuthorizationTokenAuthenticated(authenticatedValue)
         );
     }
 
@@ -807,7 +807,7 @@ public class UnitRegistryRemote extends AbstractRegistryRemote<UnitRegistryData>
                 authenticationToken,
                 String.class,
                 SessionManager.getInstance(),
-                this::requestAuthenticationTokenAuthenticated
+                authenticatedValue -> requestAuthenticationTokenAuthenticated(authenticatedValue)
         );
     }
 
