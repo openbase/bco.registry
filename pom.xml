@@ -214,8 +214,8 @@
         <java.source.version>8</java.source.version>
         <java.target.version>8</java.target.version>
         
-        <dependency.bco.version>2.0-SNAPSHOT</dependency.bco.version>
-        <dependency.jul.version>2.0-SNAPSHOT</dependency.jul.version>
+        <dependency.bco.version>[2.0,2.1-alpha)</dependency.bco.version>
+        <dependency.jul.version>[2.0,2.1-alpha)</dependency.jul.version>
         <dependency.bco.authentication.version>${dependency.bco.version}</dependency.bco.authentication.version>
         <dependency.rct.version>[0.18,0.19-alpha)</dependency.rct.version>
         <dependency.apache-math.version>[3.6,3.7-alpha)</dependency.apache-math.version>
